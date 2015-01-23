@@ -1,0 +1,93 @@
+Title: "Statistical Inference Course Project 2: An Inferential data analysis"
+---------------------------------------------
+Date: "Sunday, December 21, 2014"
+--------------------------------------------
+Here we will load and provide a summary of the data package Tooth Growth.
+
+```{r fig.width=14, fig.height=6}
+#load the data package
+data(ToothGrowth)
+#peek to see its structure
+head(ToothGrowth)
+#give me a more comprehensive look at the data structure
+str(ToothGrowth)
+#what are the names of the columns
+names(ToothGrowth)
+#what are the dimensions of the data 
+dim(ToothGrowth)
+#Lets look at a summary of the data
+summary(ToothGrowth)
+
+ToothGrowth_OJ <- subset(ToothGrowth, ToothGrowth[,2] =='OJ')
+
+ToothGrowth_VC <- subset(ToothGrowth, ToothGrowth[,2] =='VC')
+
+#The help page also displays a nice way to visualize the data set
+require(graphics)
+coplot(len ~ dose | supp, data = ToothGrowth, panel = panel.smooth, xlab ="The Effect of Tooth Growth in Guinea Pigs: length over dose by supplement: Orange Juice or Ascorbic Acid")
+```
+
+
+```{r fig.width=14, fig.height=6}
+
+par(mfrow=c(1,2))
+boxplot(ToothGrowth_OJ[,1]~ToothGrowth_OJ[,3],data=ToothGrowth_OJ, main="Effect of Tooth growth by dose and supplement OJ", xlab="Supplement type OJ", ylab="Tooth length")
+
+boxplot(ToothGrowth_VC[,1]~ToothGrowth_VC[,3],data=ToothGrowth_VC, main="Effect of Tooth growth by dose and supplement VC", xlab="Supplement type VC", ylab="Tooth length")
+
+toothgrowthmeans <- aggregate(ToothGrowth$len,list(ToothGrowth$supp,ToothGrowth$dose),FUN=mean)
+
+summary(toothgrowthmeans)
+
+toothgrowthvar <- aggregate(ToothGrowth$len,list(ToothGrowth$supp,ToothGrowth$dose),FUN=var)
+
+
+se <- function(x) sqrt(var(x)/length(x))
+
+toothgrowthsd <- aggregate(ToothGrowth$len,list(ToothGrowth$supp,ToothGrowth$dose),FUN=sd)
+
+toothgrowthse <- aggregate(ToothGrowth$len,list(ToothGrowth$supp,ToothGrowth$dose),FUN=se)
+
+
+summary(toothgrowthsd)
+
+summary(toothgrowthse)
+
+
+summary(toothgrowthvar)
+
+ToothGrowth_var_oj <- subset(toothgrowthvar, toothgrowthvar[,1] =='OJ')
+
+ToothGrowth_var_vc <- subset(toothgrowthvar, toothgrowthvar[,1] =='VC')
+
+mean(ToothGrowth_var_oj[,3])
+
+mean(ToothGrowth_var_vc[,3])
+
+```
+So I can see that there are differences between dose and supplement type and now I want to use confidence intervals and hypothesis testing to compare tooth growth by supp and dose. To do this I will run a t-test. As shown above I can see that mean variances are unequal and I have no way of knowing if these sample animals had been tested under both supplements so its safe to assume these are not paired. So I will run an unpaired t-test. 
+
+```{r}
+t.test(len ~ supp, data = ToothGrowth)
+```
+So it does not appear with a p-value 0.06 that tooth growth was significantly effected (with 95% confidence interval) in Guinea Pigs by both supplements. This includes both Orange Juice and Ascorbic Acid at all doses. For us to be able to compare the supplements we should subset by dose and then directly compare the supplements with statistical confidence. this way we can answer the question of by dose which supplement having the strongest effect on tooth growth.
+```{r}
+
+ToothGrowth_dose0.5 <- subset(ToothGrowth, ToothGrowth[,3] == '0.5')
+ToothGrowth_dose1 <- subset(ToothGrowth, ToothGrowth[,3] == '1')
+ToothGrowth_dose2 <- subset(ToothGrowth, ToothGrowth[,3] == '2')
+
+ToothGrowth_dose0.5test <- t.test(len ~ supp, data = ToothGrowth_dose0.5)
+
+ToothGrowth_dose1test <- t.test(len ~ supp, data = ToothGrowth_dose1)
+
+ToothGrowth_dose2test <- t.test(len ~ supp, data = ToothGrowth_dose2)
+
+p.value.results <- cbind(ToothGrowth_dose0.5test$p.value, ToothGrowth_dose1test$p.value, ToothGrowth_dose2test$p.value)
+
+colnames(p.value.results) <- c(".5 dose", "1.0 dose", "2.0 dose")
+
+p.value.results
+
+```
+So are initial question is: Are there any differences between the two delivery methods (orange juice or ascorbic acid). The null hypothesis is that there is no difference between them. Dose .05 and Dose 1 show that there p-values are both less than .05 so we can say that these methods are different and we reject the null hypothesis. Dose 2 has a p-value of .96 so we accept the null hypothesis that at Dose 2 the two supplements are similar and there is not difference between them. 
